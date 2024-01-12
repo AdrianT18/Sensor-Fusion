@@ -59,7 +59,9 @@ measurement, thereby enhancing the performance of various submodules within the 
 ### Extended Kalman Filter
 This small video is the fused sensors in a fram -  We can see that it has been succesfully done as the detected object distance is being calculated using the LiDAR points. In addition to this the overlay of the points. They are there for fun right now. 
 
-https://github.com/AdrianT18/Sensor-Fusion/assets/100729061/26daa1fe-c30b-45dc-a46e-40629b1893f2
+
+https://github.com/AdrianT18/Sensor-Fusion/assets/100729061/56632bc4-e02f-4ea8-bae4-51f55de1e6ba
+
 
 ## Installation and Usage
 
@@ -67,5 +69,4 @@ https://github.com/AdrianT18/Sensor-Fusion/assets/100729061/26daa1fe-c30b-45dc-a
 # Instructions for setting up the project
 Coming soon...
 ```
-
 
