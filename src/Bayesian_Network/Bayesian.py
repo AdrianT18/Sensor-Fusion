@@ -1,6 +1,7 @@
 import os
 import cv2
 import numpy as np
+from numpy.random import multivariate_normal
 from tqdm import tqdm
 from EKF.data_preprocessing import (
     load_camera_image, load_lidar_data, read_kitti_calibration, apply_calibration,
@@ -12,6 +13,7 @@ from EKF.sensor_fusion import (
 from yolov7.models.experimental import attempt_load
 import tensorflow as tf
 import tensorflow_probability as tfp
+from scipy.stats import norm
 
 tfd = tfp.distributions
 
@@ -20,6 +22,7 @@ This Bayesian script is used to fuse the data from the LiDAR and the camera usin
 In the mean time we also detect objects in the camera image using YOLOv7. 
 It also calculates the distance of the detected objects using the LiDAR data.
 """
+
 
 # def extract_lidar_data_for_objects(calibrated_lidar_points, detected_objects, projected_points):
 #     lidar_data_for_objects = []
@@ -132,68 +135,101 @@ def bay_calculate_distance_to_object(lidar_data, projected_points, bbox):
         return None
 
 
-# Bayesian Fusion Function
-# It fuses the data and using Bayesian interference to estimate the accuracy of object detection.
-# Uses TensorFlow Probability in order to perform probabilistic modeling and Markov Chain Monte Carlo sampling.
-def bayesian_fusion(detected_objects, lidar_data_for_objects):
-    # Get the detection confidences from the detected objects
-    detection_confidences = np.array([obj.get('confidence', 0) for obj in detected_objects])
+# Associate LiDAR points with corresponding pixels in the camera image
+def associate_lidar_camera_data(projected_lidar, camera_image, T_velo_cam, P_cam):
+    # Transform lidar points into camera coordinates
+    projected_lidar, _ = apply_calibration(projected_lidar, T_velo_cam, P_cam)
+    associated_data = []
 
-    # Store distances
-    lidar_distances = []
+    for point in projected_lidar:
+        # Extract x and y coordinates (2D)
+        x, y = int(point[0]), int(point[1])
 
-    # Calculate the distances for each detected object using points
-    for obj_lidar_data, bbox, proj_points in lidar_data_for_objects:
-        distance = bay_calculate_distance_to_object(obj_lidar_data, proj_points, bbox)
-        if distance is not None:
-            lidar_distances.append(distance)
-        else:
-            lidar_distances.append(0)
-    lidar_distances = np.array(lidar_distances)
+        # Check if the point is within the image boundaries
+        if 0 <= x < camera_image.shape[1] and 0 <= y < camera_image.shape[0]:
+            associated_data.append((point, camera_image[y, x]))
 
-    # A prior distribution for the detection accuracy
-    detection_accuracy_prior = tfd.Normal(loc=0.9, scale=0.1)
-    detection_accuracies = detection_accuracy_prior.sample(sample_shape=len(detected_objects))
+    return associated_data
 
-    # Bayesian model to calc log prob of the detection accuracy
-    def model(detection_accuracies):
-        log_prob_accumulator = 0.0
-        for i, detection_accuracy in enumerate(detection_accuracies):
-            expected_confidence = detection_accuracy * tf.where((lidar_distances[i] > 2) & (lidar_distances[i] < 30),
-                                                                1.0, 0.5)
-            observation_distribution = tfd.Bernoulli(probs=expected_confidence)
-            log_prob_accumulator += observation_distribution.log_prob(detection_confidences[i])
-        return log_prob_accumulator
 
-    # MCMC sampling using Hamiltonian Monte Carlo and step size adaptation
-    num_samples = 500
-    num_burnin_steps = 50
-    adaptive_hmc = tfp.mcmc.SimpleStepSizeAdaptation(
-        tfp.mcmc.HamiltonianMonteCarlo(
-            target_log_prob_fn=model,
-            num_leapfrog_steps=3,
-            step_size=0.01),
-        num_adaptation_steps=int(num_burnin_steps * 0.8))
+# Define the prior distribution over the environment state
+def define_prior_distribution():
+    distribution_type = 'Gaussian'
 
-    # Sample from the posterior distribution
-    states, kernel_results = tfp.mcmc.sample_chain(
-        num_results=num_samples,
-        num_burnin_steps=num_burnin_steps,
-        current_state=[detection_accuracies],
-        kernel=adaptive_hmc,
-        trace_fn=lambda _, pkr: pkr.inner_results.is_accepted)
+    # Setting the parameters for the prior distribution
+    # Assuming objects to be 10-30m away from the vehicle - so choose 20m as the mean
+    # Assuming std to be 5m as I expect them to be fairly noisy
+    if distribution_type == 'Gaussian':
+        mean = 20
+        std = 5
+        distribution = tfd.Normal(loc=mean, scale=std)
+    # Assuming min distance of obj to be 2m and max to be 50m.
+    elif distribution_type == 'Uniform':
+        min_distance = 2
+        max_distance = 50
+        distribution = tfd.Uniform(low=min_distance, high=max_distance)
 
-    # Calculate the mean of the posterior distribution FOR each detection
-    detection_accuracy_posterior_samples = states[0]
-    detection_accuracy_mean = np.mean(detection_accuracy_posterior_samples, axis=0)
+    return distribution
 
-    return detection_accuracy_mean
 
-# def calculate_lidar_distances_for_objects(lidar_data, detected_objects, calib_params):
-#     lidar_data_for_objects = extract_lidar_data_for_objects(lidar_data, detected_objects)
-#     lidar_distances = [lidar_data['distance'] for lidar_data in lidar_data_for_objects]
-#
-#     return lidar_distances
+# Calculating the likelihood of the current LiDAR observation given based of previous predicted distances
+def calculate_lidar_likelihood(lidar_data, previous_predicted_distances, lidar_measurement_error):
+    likelihood = 0.0
+
+    # Loop through each point in the LiDAR data
+    for i, point in enumerate(lidar_data):
+        # Calculate the distance of the point using Euclidean
+        actual_distance = np.sqrt(np.sum(point[:3] ** 2))
+        # Get the corresponding predicted distance
+        predicted_distance = previous_predicted_distances[i]
+        # Calculate the probability density of the actual distance being observed
+        probability_density = norm.pdf(actual_distance, loc=predicted_distance, scale=lidar_measurement_error)
+        # Add the log of the probability density to the likelihood
+        likelihood += np.log(probability_density)
+
+    return likelihood
+
+
+# function to calculate the likelihood of camera data.
+def calculate_camera_likelihood(camera_data, predicted_state, feature_extraction_function, measurement_error_cov):
+    likelihood = 0.0
+
+    # Extract features from the camera data using the provided feature extraction function.
+    camera_features = feature_extraction_function(camera_data)
+    # Extract features from the predicted state
+    predicted_features = feature_extraction_function(predicted_state)
+    for i, cam_feature in enumerate(camera_features):
+        # Corresponding predicted feature
+        pred_feature = predicted_features[i]
+        # Calculate the probability density of the observed feature given the predicted feature
+        probability_density = multivariate_normal.pdf(cam_feature, mean=pred_feature, cov=measurement_error_cov)
+        # Add the log of the probability density to the likelihood
+        likelihood += np.log(probability_density)
+
+    return likelihood
+
+
+# Define the likelihood functions for camera and LiDAR observations
+def calculate_combined_likelihood(lidar_data, camera_data, prior_distribution):
+    pass
+
+
+# Use Bayesian inference to compute the posterior distribution
+def compute_posterior_distribution(prior, likelihoods):
+    pass
+
+
+# Main fusion function that integrates the steps
+def fuse_data_bayesian(associated_data):
+    prior = define_prior_distribution()
+    likelihoods = define_likelihood_functions(associated_data['camera'], associated_data['lidar'])
+    posterior = compute_posterior_distribution(prior, likelihoods)
+    return posterior
+
+
+# Visualize the results of the fused data
+def visualize_fused_data(fused_data):
+    pass
 
 
 # Main function
@@ -253,7 +289,8 @@ def main():
             obj['fused_confidence'] = fused_confidence
 
         # Visualize the fusion of the LiDAR and the camera
-        camera_image_with_fusion = visualize_fusion(camera_image, detected_objects, lidar_points, lidar_data_for_objects)
+        camera_image_with_fusion = visualize_fusion(camera_image, detected_objects, lidar_points,
+                                                    lidar_data_for_objects)
 
         base_filename = os.path.splitext(os.path.basename(image_path))[0]
         save_processed_data(camera_image_with_fusion, lidar_points, output_dir, base_filename)
