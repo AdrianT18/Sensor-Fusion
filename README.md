@@ -62,6 +62,9 @@ This small video is the fused sensors in a fram -  We can see that it has been s
 
 https://github.com/AdrianT18/Sensor-Fusion/assets/100729061/56632bc4-e02f-4ea8-bae4-51f55de1e6ba
 
+### Bayesian Network
+This is to just show that Bayesian network is much better then EKF. More accurate when it come to distance detection. EKF was detecting the right car to be 14.45m.
+![image](https://github.com/AdrianT18/Sensor-Fusion/assets/100729061/a3bfa8b2-1ae4-4d87-b525-a7db3759fbc7)
 
 ## Installation and Usage
 
