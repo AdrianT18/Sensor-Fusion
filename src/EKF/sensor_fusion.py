@@ -109,7 +109,13 @@ def run_sensor_fusion(image_dir, lidar_dir, calib_file_path, output_dir, timesta
     measurement_noise = np.eye(2) * 1
 
     # Make an instance of EKF with initial parameters ^^^
-    ekf = ExtendedKalmanFilter(initial_state, state_covariance, process_noise, measurement_noise, WHEELBASE)
+    ekf = ExtendedKalmanFilter(
+        initial_state,
+        state_covariance,
+        process_noise,
+        measurement_noise,
+        WHEELBASE
+    )
 
     # Load & synchronize data pairs.
     # TODO - remove max frames for full dataset (Second line)
@@ -163,19 +169,34 @@ def run_sensor_fusion(image_dir, lidar_dir, calib_file_path, output_dir, timesta
 
         # Save EKF estimation
         estimated_position = ekf.state[:2]
-        store_estimated_position(timestamp, estimated_position, output_dir)
+        store_estimated_position(
+            timestamp,
+            estimated_position,
+            output_dir
+        )
 
         # Object detection and annotation with distance information
-        camera_image_with_detections, detected_objects = object_detection_function(camera_image_with_lidar_overlay,
-                                                                                   model, output_dir)
+        camera_image_with_detections, detected_objects = object_detection_function(
+            camera_image_with_lidar_overlay,
+            model,
+            output_dir
+        )
+
         for detected_object in detected_objects:
             bbox = detected_object['bbox']
             label = detected_object['label']
+
             distance = calculate_distance_to_object(lidar_points, projected_points, bbox)
+
             if distance is not None:
                 label_with_distance = f'{label} | Dist: {distance:.2f}m'
-                plot_one_box(bbox, camera_image_with_detections, label=label_with_distance, color=(0, 255, 0),
-                             line_thickness=1)
+                plot_one_box(
+                    bbox,
+                    camera_image_with_detections,
+                    label=label_with_distance,
+                    color=(0, 255, 0),
+                    line_thickness=1
+                )
 
         # Save processed data
         base_filename = os.path.splitext(os.path.basename(image_path))[0]
