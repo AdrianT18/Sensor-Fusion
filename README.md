@@ -50,7 +50,7 @@ measurement, thereby enhancing the performance of various submodules within the 
 
 ## To Do
 
-- [ ] Complete the Bayesian Network implementation.
+- [x] Complete the Bayesian Network implementation.
 - [ ] Test and evaluate the Bayesian Network.
 - [ ] Use the better performing algorithm with real-time LiDAR and Stereo Camera data from the autonomous vehicle
   provided by Brunel Autonomous Racing.
