@@ -32,7 +32,6 @@ measurement, thereby enhancing the performance of various submodules within the 
    between various sensor inputs, specifically between LiDAR and Stereo Cameras. Its strength lies in handling the
    inherent uncertainties and interdependencies, making it particularly effective for complex tasks like object
    detection and distance estimation in dynamic environments, as encountered in autonomous racing.
-3. **[Algorithm 3]**
 
 ### Evaluation
 
@@ -51,25 +50,33 @@ measurement, thereby enhancing the performance of various submodules within the 
 ## To Do
 
 - [x] Complete the Bayesian Network implementation.
-- [ ] Test and evaluate the Bayesian Network.
+- [x] Test and evaluate the Bayesian Network.
 - [ ] Use the better performing algorithm with real-time LiDAR and Stereo Camera data from the autonomous vehicle
   provided by Brunel Autonomous Racing.
 
 ## Current demo
-### Extended Kalman Filter
-This small video is the fused sensors in a fram -  We can see that it has been succesfully done as the detected object distance is being calculated using the LiDAR points. In addition to this the overlay of the points. They are there for fun right now. 
+[![Extended Kalman Filter and Bayasian Netwon demo](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)]([https://www.youtube.com/watch?v=EkJVz7YGFek)
 
-
-https://github.com/AdrianT18/Sensor-Fusion/assets/100729061/56632bc4-e02f-4ea8-bae4-51f55de1e6ba
-
-### Bayesian Network
-This is to just show that Bayesian network is much better then EKF. More accurate when it come to distance detection. EKF was detecting the right car to be 14.45m.
-![image](https://github.com/AdrianT18/Sensor-Fusion/assets/100729061/a3bfa8b2-1ae4-4d87-b525-a7db3759fbc7)
 
 ## Installation and Usage
 
 ```bash
 # Instructions for setting up the project
-Coming soon...
+1. Register for KITTI dataset
+2. Download odometry data set color 65GB, velodyne laser data 80GB and calibration files 1mb.
+3. Change the direcotry at the bottom of EKF and Bayesian Network.
+    calib_file_path = '../data/calib/calib.txt'
+    image_dir = '../data/image_2_1'
+    lidar_dir = '../data/velodyne_1'
+    calib_dir = '../data/calib'
+    output_dir = '../data/processed'
+    timestamp_file = '../data/timestamp/times.txt'
+3.A - I would recommend this file structure: Ensure to use the correct sequence. 
+    Data
+        - calib
+        - image2 ( the folder name from color )
+        - processed ( where the processed images and velodyne points go to )
+        - timestamp
+        - velodyne
 ```
 
