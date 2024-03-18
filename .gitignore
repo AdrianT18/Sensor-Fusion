@@ -1,3 +1,3 @@
 src/data/*
 src/yolov7/models/yolov7.pt
-src/yolov7/models/yolov7.pt
+src/test/oxts/*

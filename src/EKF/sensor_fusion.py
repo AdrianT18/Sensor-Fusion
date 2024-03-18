@@ -157,7 +157,6 @@ def run_sensor_fusion(image_dir, lidar_dir, calib_file_path, output_dir, timesta
         else:
             velocity = 0
             dt = 0.1
-
         # Predict EKF state
         prev_position = ekf.state[:2].copy()
         prev_timestamp = timestamp
@@ -166,7 +165,6 @@ def run_sensor_fusion(image_dir, lidar_dir, calib_file_path, output_dir, timesta
         # Update EKF with new LiDAR data points
         for point in lidar_points:
             ekf.update(point[:2])
-
         # Save EKF estimation
         estimated_position = ekf.state[:2]
         store_estimated_position(
@@ -174,7 +172,6 @@ def run_sensor_fusion(image_dir, lidar_dir, calib_file_path, output_dir, timesta
             estimated_position,
             output_dir
         )
-
         # Object detection and annotation with distance information
         camera_image_with_detections, detected_objects = object_detection_function(
             camera_image_with_lidar_overlay,
