@@ -55,7 +55,7 @@ measurement, thereby enhancing the performance of various submodules within the 
   provided by Brunel Autonomous Racing.
 
 ## Current demo
-[![Extended Kalman Filter and Bayasian Netwon demo](https://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg)]([https://www.youtube.com/watch?v=EkJVz7YGFek)
+[![Extended Kalman Filter and Bayasian Netwon demo](https://img.youtube.com/vi/EkJVz7YGFek/0.jpg)](https://www.youtube.com/watch?v=EkJVz7YGFek)
 
 
 ## Installation and Usage
