@@ -1,10 +1,10 @@
 import os
+
 import cv2
 import numpy as np
+import pymc as pm
 import tensorflow_probability as tfp
 from tqdm import tqdm
-import pymc as pm
-import tensorflow as tf
 
 from EKF.data_preprocessing import (
     load_camera_image, load_lidar_data, read_kitti_calibration, apply_calibration,

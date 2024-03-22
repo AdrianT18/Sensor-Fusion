@@ -1,1 +1,0 @@
-# Utility functions (e.g., mathematical helpers)
