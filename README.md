@@ -1,5 +1,4 @@
 # Lidar-Camera Fusion for Enhanced Object and Distance Detection as part of FS-AI
-P.S. New repo as there where issues with previous one. 
 ## Overview
 
 This project is part of my dissertation for Brunel University, in collaboration with the Brunel Autonomous Racing team.
